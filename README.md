@@ -1,2 +1,2 @@
 # Go-Distribute-Cache
-GO语言的一个分布式缓存实现
+分布式缓存的GO语言实现
