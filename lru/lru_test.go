@@ -1,6 +1,7 @@
 package lru
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -62,4 +63,15 @@ func TestAdd(t *testing.T) {
 	if lru.nbytes != int64(len("key")+len("111")) {
 		t.Fatal("expected 6 but got", lru.nbytes)
 	}
+}
+
+func Test1(t *testing.T) {
+	lru := New(int64(0), nil)
+	lru.Add("key", String("1"))
+	fmt.Println(lru.cache["key"])
+	fmt.Println(reflect.TypeOf(lru.cache["key"]))
+	fmt.Println(lru.cache["key"].Value)
+	fmt.Println(reflect.TypeOf(lru.cache["key"].Value))
+	fmt.Println(lru.cache["key"].Value.(*entry).value)
+	fmt.Println(reflect.TypeOf(lru.cache["key"].Value.(*entry).value))
 }
