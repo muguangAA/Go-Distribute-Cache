@@ -43,7 +43,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		panic("nil Getter")
 	}
 
-	// 加锁防止 groups 集合并发问题
+	// 加锁保证并发顺序
 	mu.Lock()
 	defer mu.Unlock()
 

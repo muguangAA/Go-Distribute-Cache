@@ -15,7 +15,7 @@ type HTTPPool struct {
 	basePath string
 }
 
-// 实例化
+// 实例化HTTP服务器
 func NewHTTPPool(self string) *HTTPPool {
 	return &HTTPPool{
 		self:     self,
