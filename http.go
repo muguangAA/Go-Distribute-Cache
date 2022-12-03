@@ -9,13 +9,13 @@ import (
 
 const defaultBasePath = "/_geecache/"
 
-// 接口
+// HTTP接口
 type HTTPPool struct {
 	self     string
 	basePath string
 }
 
-// 实例化HTTP服务器
+// 实例化HTTP服务器（实现了 handler 接口）
 func NewHTTPPool(self string) *HTTPPool {
 	return &HTTPPool{
 		self:     self,

@@ -21,10 +21,10 @@ type Getter interface {
 	Get(key string) ([]byte, error)
 }
 
-// 函数式接口
+// 定义函数类型
 type GetterFunc func(key string) ([]byte, error)
 
-// 实现 Getter 接口
+// 函数类型实现 Getter 接口（接口型函数）
 func (f GetterFunc) Get(key string) ([]byte, error) {
 	// 调用自己
 	return f(key)
@@ -86,6 +86,7 @@ func (g *Group) load(key string) (value ByteView, err error) {
 
 // 调用 g.getter.Get() 获取源数据，并且将源数据添加到缓存 mainCache 中
 func (g *Group) getLocally(key string) (ByteView, error) {
+	// 调用函数类型的实现的 Get 方法获取值
 	bytes, err := g.getter.Get(key)
 	if err != nil {
 		return ByteView{}, err
