@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"cache/singleflight"
 	"fmt"
 	"log"
 	"sync"
@@ -10,12 +11,14 @@ import (
 type Group struct {
 	// 缓存的名字
 	name string
-	// 缓存未命中时获取源数据的回调
+	// 本地缓存未命中时获取源数据的回调（比如从数据库获取）
 	getter Getter
 	// 自己实现的LRU并发缓存
 	mainCache cache
 	// peers 是 HTTPPOOl 类型，实现了 PeerPicker 接口
 	peers PeerPicker
+	// 让每个 key 在短时间内只会被访问一次
+	loader *singleflight.Group
 }
 
 // Getter 接口的 Get 方法用于根据 key 获取 value
@@ -53,6 +56,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		name:      name,
 		getter:    getter,
 		mainCache: cache{cacheBytes: cacheBytes},
+		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
 	return g
@@ -93,16 +97,24 @@ func (g *Group) RegisterPeers(peers PeerPicker) {
 // 使用 PickPeer() 方法选择节点，若非本机节点，则调用 getFromPeer()
 // 从远程获取。若是本机节点或失败，则回退到 getLocally()
 func (g *Group) load(key string) (value ByteView, err error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err = g.getFromPeer(peer, key); err == nil {
-				return value, nil
+	// 方法传参让 g.loader.Do 去调用，确保每个 key 在短时间内只会被访问一次
+	viewi, err := g.loader.Do(key, func() (interface{}, error) {
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err = g.getFromPeer(peer, key); err == nil {
+					return value, nil
+				}
+				log.Println("[GeeCache] Failed to get from peer", err)
 			}
-			log.Println("[GeeCache] Failed to get from peer", err)
 		}
-	}
 
-	return g.getLocally(key)
+		return g.getLocally(key)
+	})
+
+	if err == nil {
+		return viewi.(ByteView), nil
+	}
+	return
 }
 
 // 调用 g.getter.Get() 获取源数据，并且将源数据添加到缓存 mainCache 中
@@ -118,6 +130,7 @@ func (g *Group) getLocally(key string) (ByteView, error) {
 	return value, nil
 }
 
+// 添加缓存到 mainCache 中
 func (g *Group) populateCache(key string, value ByteView) {
 	g.mainCache.add(key, value)
 }
