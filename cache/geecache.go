@@ -1,6 +1,7 @@
 package cache
 
 import (
+	pb "cache/geecachepb"
 	"cache/singleflight"
 	"fmt"
 	"log"
@@ -137,9 +138,15 @@ func (g *Group) populateCache(key string, value ByteView) {
 
 // 使用实现了 PeerGetter 接口的 httpGetter 从访问远程节点，获取缓存值
 func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
-	bytes, err := peer.Get(g.name, key)
+	// 使用 protobuf 编码报文，提高效率
+	req := &pb.Request{
+		Group: g.name,
+		Key:   key,
+	}
+	res := &pb.Response{}
+	err := peer.Get(req, res)
 	if err != nil {
 		return ByteView{}, err
 	}
-	return ByteView{b: bytes}, nil
+	return ByteView{b: res.Value}, nil
 }
